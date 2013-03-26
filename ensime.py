@@ -1425,6 +1425,86 @@ class EnsimeAddImport(RunningProjectFileOnly, EnsimeTextCommand):
         view.show(new_pos)
     on_load()
 
+class EnsimeOpenType(RunningProjectFileOnly, EnsimeTextCommand):
+  def run(self, edit, target= None):
+    self.view.window().show_input_panel("Open Type", "", self.handle_input, None, None)
+
+  def handle_input(self,searchTerm):
+    #Ensime lucene index explodes with 'Error at Indexer message loop' exception if we the search term is too short
+    #Temporary restriction until I figure out why.
+    if (len(searchTerm) > 2 ):
+      self.rpc.public_symbol_search([searchTerm] ,
+        #self.env.settings.get("max_import_suggestions", 10) ,
+        50,
+        lambda data: self.handle_sugestions_response(data,searchTerm))
+    else:
+      self.status_message("*Temporary Road Works*: Search Term must be at least 3 characters")
+
+  def handle_sugestions_response(self, info, searchTerm):
+    results = map(lambda result: (result.decl_as[0], result.name, result.pos),
+      filter(lambda result: result.pos.file_name.endswith(".scala") and (searchTerm.lower() in result.local_name.lower()) , info))
+
+    def do_open(i):
+      if (i > -1):
+        # fails from time to time, because sometimes self.w is None
+        # v = self.w.open_file(info.decl_pos.file_name)
+
+        # <the first attempt to make it work, gave rise to #31>
+        # v = sublime.active_window().open_file(info.decl_pos.file_name)
+        # # <workaround 1> this one doesn't work, because of the pervasive problem with `show`
+        # # v.sel().clear()
+        # # v.sel().add(Region(info.decl_pos.offset, info.decl_pos.offset))
+        # # v.show(info.decl_pos.offset)
+        # # <workaround 2> this one ignores the second open_file
+        # # row, col = v.rowcol(info.decl_pos.offset)
+        # # sublime.active_window().open_file("%s:%d:%d" % (info.decl_pos.file_name, row + 1, col + 1), sublime.ENCODED_POSITION)
+
+        file_name = results[i][2].file_name
+        print(file_name)
+        contents = None
+        with open(file_name, "rb") as f: contents = f.read().decode("utf8")
+        if contents:
+          # todo. doesn't support mixed line endings
+          def detect_newline():
+            if "\n" in contents and "\r" in contents: return "\r\n"
+            if "\n" in contents: return "\n"
+            if "\r" in contents: return "\r"
+            return None
+          zb_offset = results[i][2].offset
+          newline = detect_newline()
+          zb_row = contents.count(newline, 0, zb_offset) if newline else 0
+          zb_col = zb_offset - contents.rfind(newline, 0, zb_offset) - len(newline) if newline else zb_offset
+          def open_file():
+            return self.w.open_file("%s:%d:%d" % (file_name, zb_row + 1, zb_col + 1), sublime.ENCODED_POSITION)
+
+          w = self.w or sublime.active_window()
+          g, i = (None, None)
+          if self.v != None and same_paths(self.v.file_name(), file_name):
+            # open_file doesn't work, so we have to work around
+            # open_file()
+
+            # <workaround 1> close and then reopen
+            # works fine but is hard on the eyes
+            # g, i = w.get_view_index(self.v)
+            # self.v.run_command("save")
+            # self.w.run_command("close_file")
+            # v = open_file()
+            # self.w.set_view_index(v, g, i)
+
+            # <workaround 2> v.show
+            # has proven to be very unreliable
+            # but let's try and use it
+            offset_in_editor = self.v.text_point(zb_row, zb_col)
+            region_in_editor = Region(offset_in_editor, offset_in_editor)
+            sublime.set_timeout(bind(self._scroll_viewport, self.v, region_in_editor), 100)
+          else:
+            open_file()
+        else:
+          self.status_message("Cannot open " + file_name)
+
+
+    self.v.window().show_quick_panel(map(lambda i: i[0]+": "+i[1],results), do_open)
+
 class EnsimeBuild(ProjectExists, EnsimeWindowCommand):
   def run(self):
     cmd = sbt_command("compile") # TODO: make this configurable

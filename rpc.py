@@ -352,6 +352,9 @@ class Rpc(object):
   @async_rpc(SymbolSearchResults.parse_list)
   def import_suggestions(self, file_name, position, type_names, max_results): pass
 
+  @async_rpc(SymbolSearchResult.parse_list)
+  def public_symbol_search(self, type_names, max_results): pass
+
   @async_rpc(RefactorResult.parse)
   def prepare_refactor(self, procedure_id, refactor_type, parameters, require_confirmation): pass
 
