@@ -1,8 +1,13 @@
 import sublime
 import threading, uuid
 from uuid import uuid4
-from . import dotensime, dotsession
-from .paths import *
+
+try:
+  from . import dotensime, dotsession
+  from .paths import *
+except(ValueError):
+  import dotensime, dotsession
+  from paths import *
 
 envLock = threading.RLock()
 ensime_envs = {}
@@ -30,7 +35,11 @@ class EnsimeEnvironment(object):
 
   def __deferred_init__(self):
     self.recalc()
-    from .ensime import Daemon
+    try:
+      from .ensime import Daemon
+    except(ValueError):
+      from ensime import Daemon
+
     v = self.w.active_view()
     if v != None: Daemon(v).on_activated() # recolorize
 
@@ -154,32 +163,50 @@ class EnsimeEnvironment(object):
 
   @property
   def rpc(self):
-    from .rpc import Rpc
+    try:
+      from .rpc import Rpc
+    except(ValueError):
+      from rpc import Rpc
     return Rpc(self)
 
   @property
   def notes(self):
-    from .ensime import Notes
+    try:
+      from .ensime import Notes
+    except(ValueError):
+      from ensime import Notes
     return Notes(self)
 
   @property
   def debugger(self):
-    from .ensime import Debugger
+    try:
+      from .ensime import Debugger
+    except(ValueError):
+      from ensime import Debugger
     return Debugger(self)
 
   @property
   def output(self):
-    from .ensime import Output
+    try:
+      from .ensime import Output
+    except(ValueError):
+      from ensime import Output
     return Output(self)
 
   @property
   def stack(self):
-    from .ensime import Stack
+    try:
+      from .ensime import Stack
+    except(ValueError):
+      from ensime import Stack
     return Stack(self)
 
   @property
   def watches(self):
-    from .ensime import Watches
+    try:
+      from .ensime import Watches
+    except(ValueError):
+      from ensime import Watches
     return Watches(self)
 
   # externalizable part of mutable state

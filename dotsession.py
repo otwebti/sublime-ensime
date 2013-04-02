@@ -1,5 +1,8 @@
 import sublime, os, sys, traceback, json, re
-from .paths import *
+try:
+  from .paths import *
+except(ValueError):
+  from paths import *
 
 def location(env):
   return env.session_file

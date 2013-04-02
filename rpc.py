@@ -1,8 +1,14 @@
 import inspect, functools
 from functools import partial as bind
-from . import sexp
-from .sexp import key, sym
 import collections
+
+try:
+  from . import sexp
+  from .sexp import key, sym
+except(ValueError):
+  import sexp
+  from sexp import key, sym
+
 
 ############################## DATA STRUCTURES ##############################
 
