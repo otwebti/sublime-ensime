@@ -78,6 +78,8 @@ class EnsimeCommon(object):
     sublime.set_timeout(bind(self.log_on_ui_thread, "server", data), 0)
 
   def log_on_ui_thread(self, flavor, data):
+    if isinstance(data,unicode):
+      data = data.encode('utf-8')
     if flavor in self.env.settings.get("log_to_console", {}):
       print(data.strip())
     if flavor in self.env.settings.get("log_to_file", {}):
@@ -404,10 +406,10 @@ class ClientSocket(EnsimeCommon):
               buf += chunk
             else:
               raise Exception("fatal error: recv returned None")
-          self.log_client("RECV: " + buf.decode('utf-8'))
 
           try:
             s = buf.decode('utf-8')
+            self.log_client("RECV: " + s)
             form = sexp.read(s)
             self.notify_async_data(form)
           except:
@@ -463,7 +465,7 @@ class ClientSocket(EnsimeCommon):
     try:
       if not self.connected:
         self.connect()
-      self.socket.send(request)
+      self.socket.send(request.encode('utf-8'))
     except:
       self.connected = False
 
@@ -510,7 +512,7 @@ class Client(ClientListener, EnsimeCommon):
 
     self.feedback(msg_str)
     self.log_client("SEND ASYNC REQ: " + msg_str)
-    self.socket.send(msg_str.encode('utf-8'))
+    self.socket.send(msg_str)
 
   def sync_req(self, to_send, timeout=0):
     msg_id = self.next_message_id()
@@ -521,7 +523,7 @@ class Client(ClientListener, EnsimeCommon):
 
     self.feedback(msg_str)
     self.log_client("SEND SYNC REQ: " + msg_str)
-    self.socket.send(msg_str.encode('utf-8'))
+    self.socket.send(msg_str)
 
     max_wait = timeout or self.timeout
     event.wait(max_wait)
@@ -746,6 +748,7 @@ class ServerProcess(EnsimeCommon):
     while True:
       data = os.read(self.proc.stdout.fileno(), 2**15)
       if data != b"":
+        data = data.decode('utf-8')
         for listener in self.listeners:
           if listener:
             listener.on_server_data(data)
@@ -757,6 +760,7 @@ class ServerProcess(EnsimeCommon):
     while True:
       data = os.read(self.proc.stderr.fileno(), 2**15)
       if data != b"":
+        data = data.decode('utf-8')
         for listener in self.listeners:
           if listener:
             listener.on_server_data(data)
@@ -840,7 +844,7 @@ class Server(ServerListener, EnsimeCommon):
       if ensime_jar: ensime_jar.close()
 
   def on_server_data(self, data):
-    str_data = data.decode('utf-8').replace("\r\n", "\n").replace("\r", "\n")
+    str_data = data.replace("\r\n", "\n").replace("\r", "\n")
     self.log_server(str_data)
 
   def shutdown(self):
@@ -883,7 +887,7 @@ class Controller(EnsimeCommon, ClientListener, ServerListener):
       raise
 
   def on_server_data(self, data):
-    if not self.env.running and re.search(b"Wrote port", data):
+    if not self.env.running and re.search("Wrote port", data):
       self.env.running = True
       sublime.set_timeout(self.ignition, 0)
 
@@ -1369,7 +1373,7 @@ class EnsimeGoToDefinition(RunningProjectFileOnly, EnsimeTextCommand):
 
       file_name = info.decl_pos.file_name
       contents = None
-      with open(file_name, "rb") as f: contents = f.read().decode("utf8")
+      with open(file_name, "rb") as f: contents = f.read().decode('utf-8')
       if contents:
         # todo. doesn't support mixed line endings
         def detect_newline():

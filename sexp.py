@@ -212,7 +212,9 @@ def atom_to_str(exp):
     return "nil"
   elif type(exp) == Symbol:
     return exp.val
-  elif isinstance(exp, str):
+  elif isinstance(exp, basestring):
+    if isinstance(exp,unicode):
+      exp = exp.encode('utf-8')
     return "\"" + exp.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
   else:
     return str(exp)

@@ -81,6 +81,7 @@ class EnsimeEnvironment(object):
                               ("bin\\server.bat" if os.name == 'nt'
                                else "bin/server"))
     self.ensime_args = self.settings.get("ensime_server_args")
+    #TODO: Fix assumption that ensime is installed inside plugin - can we get plugin root from Sublime API ?
     self.plugin_root = os.path.normpath(os.path.join(self.server_path, ".."))
     self.log_root = os.path.normpath(os.path.join(self.plugin_root, "logs"))
 
