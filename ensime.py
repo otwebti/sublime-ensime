@@ -21,6 +21,7 @@ try:
   from .paths import *
   from .rpc import *
   from .sbt import *
+  from .compatibility import *
 except(ValueError):
   import env, diff, dotensime, dotsession, rpc
   import sexp
@@ -29,6 +30,7 @@ except(ValueError):
   from paths import *
   from rpc import *
   from sbt import *
+  from compatibility import *
 
 
 class EnsimeCommon(object):
@@ -78,7 +80,7 @@ class EnsimeCommon(object):
     sublime.set_timeout(bind(self.log_on_ui_thread, "server", data), 0)
 
   def log_on_ui_thread(self, flavor, data):
-    if isinstance(data,unicode):
+    if (python_major_version == 2) and isinstance(data,unicode):
       data = data.encode('utf-8')
     if flavor in self.env.settings.get("log_to_console", {}):
       print(data.strip())

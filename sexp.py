@@ -1,5 +1,11 @@
 import re
 
+try:
+  from .compatibility import *
+except(ValueError):
+  from compatibility import *
+
+
 class Keyword:
   def __init__(self, s):
     self.val = s
@@ -213,7 +219,7 @@ def atom_to_str(exp):
   elif type(exp) == Symbol:
     return exp.val
   elif isinstance(exp, basestring):
-    if isinstance(exp,unicode):
+    if (python_major_version == 2) and isinstance(exp,unicode):
       exp = exp.encode('utf-8')
     return "\"" + exp.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
   else:
